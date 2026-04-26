@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow — Gestión de Tareas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #13131a;
+            --surface2: #1c1c28;
+            --accent: #7c6af7;
+            --accent2: #f76a8a;
+            --accent3: #6af7c8;
+            --text: #eeeef5;
+            --text-muted: #7a7a9a;
+            --border: rgba(124, 106, 247, 0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Background grid */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(124,106,247,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(124,106,247,0.03) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Glows */
+        .glow-1 {
+            position: fixed;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(124,106,247,0.12) 0%, transparent 70%);
+            top: -200px; left: -200px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .glow-2 {
+            position: fixed;
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(247,106,138,0.08) 0%, transparent 70%);
+            bottom: -150px; right: -150px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Nav */
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 48px;
+            backdrop-filter: blur(20px);
+            background: rgba(10,10,15,0.7);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 22px;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-dot {
+            width: 8px; height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 12px var(--accent);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.8); }
+        }
+
+        .nav-badge {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--accent3);
+            background: rgba(106,247,200,0.1);
+            border: 1px solid rgba(106,247,200,0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        /* Hero */
+        .hero {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+            padding: 120px 48px 60px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .hero-left { animation: fadeUp 0.8s ease forwards; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--accent);
+            background: rgba(124,106,247,0.1);
+            border: 1px solid rgba(124,106,247,0.2);
+            padding: 6px 14px;
+            border-radius: 20px;
+            margin-bottom: 28px;
+        }
+
+        .hero-tag::before {
+            content: '';
+            width: 6px; height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+        }
+
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(42px, 5vw, 68px);
+            font-weight: 800;
+            line-height: 1.05;
+            letter-spacing: -2px;
+            margin-bottom: 24px;
+        }
+
+        h1 .highlight {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-desc {
+            font-size: 17px;
+            color: var(--text-muted);
+            line-height: 1.7;
+            max-width: 440px;
+            margin-bottom: 40px;
+        }
+
+        /* App Panel */
+        .app-panel {
+            position: relative;
+            z-index: 1;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03);
+            animation: fadeUp 0.8s ease 0.2s both;
+        }
+
+        .panel-header {
+            background: var(--surface2);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .panel-dots span {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+        }
+
+        .panel-dots span:nth-child(1) { background: #ff5f57; }
+        .panel-dots span:nth-child(2) { background: #febc2e; }
+        .panel-dots span:nth-child(3) { background: #28c840; }
+
+        .panel-title {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-family: 'Syne', sans-serif;
+            font-weight: 600;
+        }
+
+        .panel-body { padding: 24px; }
+
+        /* Form */
+        .form-group { margin-bottom: 14px; }
+
+        .form-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            resize: none;
+        }
+
+        .form-input:focus, .form-textarea:focus {
+            border-color: rgba(124,106,247,0.5);
+            box-shadow: 0 0 0 3px rgba(124,106,247,0.1);
+        }
+
+        .form-input::placeholder, .form-textarea::placeholder {
+            color: rgba(122,122,154,0.5);
+        }
+
+        .btn-add {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, var(--accent), #9b6af7);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+            margin-top: 4px;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-add:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-add:active { transform: translateY(0); }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 20px 0;
+        }
+
+        /* Task List */
+        .tasks-label {
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .tasks-count {
+            background: rgba(124,106,247,0.15);
+            color: var(--accent);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+
+        #tasks { max-height: 320px; overflow-y: auto; }
+
+        #tasks::-webkit-scrollbar { width: 4px; }
+        #tasks::-webkit-scrollbar-track { background: transparent; }
+        #tasks::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        .task-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: border-color 0.2s, transform 0.2s;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .task-card:hover {
+            border-color: rgba(124,106,247,0.3);
+            transform: translateX(3px);
+        }
+
+        .task-icon {
+            width: 36px; height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .task-icon.pendiente { background: rgba(255,152,0,0.1); }
+        .task-icon.progreso { background: rgba(33,150,243,0.1); }
+        .task-icon.completada { background: rgba(76,175,80,0.1); }
+
+        .task-info { flex: 1; min-width: 0; }
+
+        .task-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .task-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .task-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .status-select {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 11px;
+            padding: 4px 8px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .btn-delete {
+            width: 28px; height: 28px;
+            background: rgba(247,106,138,0.1);
+            border: 1px solid rgba(247,106,138,0.2);
+            border-radius: 6px;
+            color: var(--accent2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .btn-delete:hover { background: rgba(247,106,138,0.2); }
+
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .empty-state .empty-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+            opacity: 0.4;
+        }
+
+        /* Stats row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-family: 'Syne', sans-serif;
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .stat-card:nth-child(1) .stat-number { color: #ff9800; }
+        .stat-card:nth-child(2) .stat-number { color: #2196F3; }
+        .stat-card:nth-child(3) .stat-number { color: #4CAF50; }
+
+        /* Tech stack badges */
+        .tech-stack {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 32px;
+        }
+
+        .tech-badge {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 5px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            background: var(--surface);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            nav { padding: 16px 20px; }
+            .hero { grid-template-columns: 1fr; padding: 100px 20px 40px; gap: 40px; }
+            .app-panel { order: -1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="glow-1"></div>
+    <div class="glow-2"></div>
+
+    <nav>
+        <div class="logo">
+            <div class="logo-dot"></div>
+            TaskFlow
+        </div>
+        <span class="nav-badge">v1.0 · PHP + Docker</span>
+    </nav>
+
+    <div class="hero">
+        <div class="hero-left">
+            <div class="hero-tag">Proyecto de Portafolio</div>
+            <h1>Organiza tu trabajo <span class="highlight">sin límites</span></h1>
+            <p class="hero-desc">
+                Sistema de gestión de tareas construido con PHP, MySQL y Docker. 
+                API REST completa con operaciones CRUD en tiempo real.
+            </p>
+
+            <div class="tech-stack">
+                <span class="tech-badge">🐘 PHP 8.1</span>
+                <span class="tech-badge">🐬 MySQL 8</span>
+                <span class="tech-badge">🐳 Docker</span>
+                <span class="tech-badge">⚡ REST API</span>
+                <span class="tech-badge">🔀 Git Flow</span>
+            </div>
+        </div>
+
+        <div class="app-panel">
+            <div class="panel-header">
+                <div class="panel-dots">
+                    <span></span><span></span><span></span>
+                </div>
+                <span class="panel-title">TaskFlow — Dashboard</span>
+            </div>
+            <div class="panel-body">
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <div class="stat-number" id="count-pendiente">0</div>
+                        <div class="stat-label">Pendientes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="count-progreso">0</div>
+                        <div class="stat-label">En Progreso</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="count-completada">0</div>
+                        <div class="stat-label">Completadas</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Título de la tarea</label>
+                    <input type="text" class="form-input" id="title" placeholder="ej. Revisar pull request...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Descripción</label>
+                    <textarea class="form-textarea" id="description" rows="2" placeholder="Detalles opcionales..."></textarea>
+                </div>
+                <button class="btn-add" onclick="createTask()">+ Agregar Tarea</button>
+
+                <div class="divider"></div>
+
+                <div class="tasks-label">
+                    Tareas activas
+                    <span class="tasks-count" id="total-count">0 tareas</span>
+                </div>
+                <div id="tasks"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = 'http://localhost:8080/api.php';
+        const ICONS = {
+            'pendiente': '⏳',
+            'en progreso': '🔄',
+            'completada': '✅'
+        };
+
+        async function loadTasks() {
+            try {
+                const res = await fetch(API);
+                const tasks = await res.json();
+                const container = document.getElementById('tasks');
+
+                const pendiente = tasks.filter(t => t.status === 'pendiente').length;
+                const progreso = tasks.filter(t => t.status === 'en progreso').length;
+                const completada = tasks.filter(t => t.status === 'completada').length;
+
+                document.getElementById('count-pendiente').textContent = pendiente;
+                document.getElementById('count-progreso').textContent = progreso;
+                document.getElementById('count-completada').textContent = completada;
+                document.getElementById('total-count').textContent = tasks.length + ' tareas';
+
+                if (tasks.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📋</div>
+                            <div>Sin tareas aún. ¡Agrega la primera!</div>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = '';
+                tasks.forEach(task => {
+                    const statusClass = task.status === 'en progreso' ? 'progreso' : task.status;
+                    container.innerHTML += `
+                        <div class="task-card">
+                            <div class="task-icon ${statusClass}">${ICONS[task.status] || '📌'}</div>
+                            <div class="task-info">
+                                <div class="task-title">${task.title}</div>
+                                <div class="task-desc">${task.description || 'Sin descripción'}</div>
+                            </div>
+                            <div class="task-actions">
+                                <select class="status-select" onchange="updateStatus(${task.id}, '${task.title.replace(/'/g,"\\'")}', '${(task.description||'').replace(/'/g,"\\'")}', this.value)">
+                                    <option ${task.status==='pendiente'?'selected':''}>pendiente</option>
+                                    <option ${task.status==='en progreso'?'selected':''}>en progreso</option>
+                                    <option ${task.status==='completada'?'selected':''}>completada</option>
+                                </select>
+                                <button class="btn-delete" onclick="deleteTask(${task.id})" title="Eliminar">✕</button>
+                            </div>
+                        </div>`;
+                });
+            } catch (e) {
+                console.error('Error cargando tareas:', e);
+            }
+        }
+
+        async function createTask() {
+            const title = document.getElementById('title').value.trim();
+            const description = document.getElementById('description').value.trim();
+            if (!title) {
+                document.getElementById('title').focus();
+                return;
+            }
+            await fetch(API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, description })
+            });
+            document.getElementById('title').value = '';
+            document.getElementById('description').value = '';
+            loadTasks();
+        }
+
+        async function updateStatus(id, title, description, status) {
+            await fetch(API, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, title, description, status })
+            });
+            loadTasks();
+        }
+
+        async function deleteTask(id) {
+            if (!confirm('¿Eliminar esta tarea?')) return;
+            await fetch(API, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            loadTasks();
+        }
+
+        document.getElementById('title').addEventListener('keypress', e => {
+            if (e.key === 'Enter') createTask();
+        });
+
+        loadTasks();
+    </script>
+</body>
+</html>
